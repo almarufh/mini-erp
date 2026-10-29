@@ -14,6 +14,7 @@ type Router struct {
 	pool *pgxpool.Pool
 	m    *middleware.Middleware
 	pc   *control.ProductControl
+	oc   *control.OrderControl
 }
 
 func NewRouter(router *gin.Engine, pool *pgxpool.Pool, allowedOrigins []string) *Router {
@@ -22,11 +23,16 @@ func NewRouter(router *gin.Engine, pool *pgxpool.Pool, allowedOrigins []string) 
 	pr := repo.NewProductRepo()
 	ps := service.NewProductService(pool, pr)
 	pc := control.NewProductControl(ps)
+
+	or := repo.NewOrderRepo()
+	os := service.NewOrderService(pool, or, pr)
+	oc := control.NewOrderControl(os)
 	return &Router{
 		pool: pool,
 		m:    middleware.InitMiddleware(allowedOrigins),
 		api:  api,
 		pc:   pc,
+		oc:   oc,
 	}
 }
 

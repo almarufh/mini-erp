@@ -49,3 +49,21 @@ type StockMovementResponse struct {
 type ProductMovementsResponse struct {
 	Data []StockMovementResponse `json:"data"`
 }
+
+type SalesOrderItemResponse struct {
+	ID        int    `json:"id"`
+	OrderID   int    `json:"order_id"`
+	SKU       string `json:"sku"`
+	Qty       int    `json:"qty"`
+	UnitPrice int    `json:"unit_price"`
+}
+
+type SalesOrderResponse struct {
+	ID          int                      `json:"id"`
+	Customer    string                   `json:"customer"`
+	Status      string                   `json:"status"`
+	Total       int                      `json:"total"`
+	CreatedAt   time.Time                `json:"created_at"`
+	CancelledAt *time.Time               `json:"cancelled_at,omitempty"`
+	Items       []SalesOrderItemResponse `json:"items"`
+}

@@ -19,3 +19,13 @@ type AdjustStockReq struct {
 	Qty  int     `json:"qty" binding:"required,gt=0" example:"5"`
 	Note *string `json:"note,omitempty" example:"Pengurangan stok manual"`
 }
+
+type CreateOrderItemReq struct {
+	SKU string `json:"sku" binding:"required" example:"SKU-KB-001"`
+	Qty int    `json:"qty" binding:"required,gt=0" example:"2"`
+}
+
+type CreateOrderReq struct {
+	Customer string               `json:"customer" binding:"required" example:"Budi Santoso"`
+	Items    []CreateOrderItemReq `json:"items" binding:"required,gt=0,dive"`
+}
