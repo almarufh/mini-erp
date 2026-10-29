@@ -1,7 +1,10 @@
 package router
 
 import (
+	"github.com/almarufh/mini-er/internal/control"
 	"github.com/almarufh/mini-er/internal/middleware"
+	"github.com/almarufh/mini-er/internal/repo"
+	"github.com/almarufh/mini-er/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -10,18 +13,25 @@ type Router struct {
 	api  *gin.RouterGroup
 	pool *pgxpool.Pool
 	m    *middleware.Middleware
+	pc   *control.ProductControl
 }
 
 func NewRouter(router *gin.Engine, pool *pgxpool.Pool, allowedOrigins []string) *Router {
 	api := router.Group("api")
+
+	pr := repo.NewProductRepo()
+	ps := service.NewProductService(pool, pr)
+	pc := control.NewProductControl(ps)
 	return &Router{
 		pool: pool,
 		m:    middleware.InitMiddleware(allowedOrigins),
 		api:  api,
+		pc:   pc,
 	}
 }
 
 func (r *Router) Connect() {
+	r.Swagger()
 	r.ProductsRouter()
 	r.OrdersRouter()
 }
