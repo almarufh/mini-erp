@@ -111,3 +111,21 @@ func (ps *ProductService) CreateProductService(c context.Context, req *dto.Creat
 		LastMovementAt: nil,
 	}, nil
 }
+
+func (ps *ProductService) UpdateProductService(c context.Context, id int, req *dto.UpdateProductReq) (*dto.ProductResponse, error) {
+	updatedProduct, err := ps.pr.UpdateProductRepo(c, ps.db, id, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ProductResponse{
+		ID:             updatedProduct.ID,
+		SKU:            updatedProduct.SKU,
+		Name:           updatedProduct.Name,
+		Price:          updatedProduct.Price,
+		Stock:          updatedProduct.Stock,
+		IsActive:       updatedProduct.IsActive,
+		CreatedAt:      updatedProduct.CreatedAt,
+		LastMovementAt: nil,
+	}, nil
+}

@@ -116,3 +116,69 @@ func (pc *ProductControl) CreateProductControl(c *gin.Context) {
 		Results: res,
 	})
 }
+
+// Update Product
+// @Summary      Update Data Produk
+// @Description  Memperbarui nama, harga, dan status aktif produk berdasarkan ID
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int                   true  "Product ID"
+// @Param        body  body      dto.UpdateProductReq  true  "Payload Update Product"
+// @Success      200   {object}  dto.Response
+// @Failure      400   {object}  dto.Response
+// @Failure      404   {object}  dto.Response
+// @Failure      500   {object}  dto.Response
+// @Router       /api/products/{id} [put]
+func (pc *ProductControl) UpdateProductControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID produk tidak valid",
+		})
+		return
+	}
+
+	var req dto.UpdateProductReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "Validasi payload gagal: " + err.Error(),
+		})
+		return
+	}
+
+	// Validasi harga hanya dilakukan jika field price dikirim
+	if req.Price != nil && *req.Price < 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "Harga produk tidak boleh kurang dari 0",
+		})
+		return
+	}
+
+	res, err := pc.ps.UpdateProductService(c.Request.Context(), id, &req)
+	if err != nil {
+		if err.Error() == "PRODUCT_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Produk tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal memperbarui produk: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Message: "Produk berhasil diperbarui",
+		Results: res,
+	})
+}

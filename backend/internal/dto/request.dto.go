@@ -7,3 +7,9 @@ type CreateProductReq struct {
 	Stock    int    `json:"stock" binding:"gte=0" example:"25"`
 	IsActive *bool  `json:"is_active" example:"true"`
 }
+
+type UpdateProductReq struct {
+	Name     *string `json:"name,omitempty" example:"Mechanical Keyboard Wireless RGB"`
+	Price    *int    `json:"price,omitempty" example:"950000"`
+	IsActive *bool   `json:"is_active,omitempty" example:"true"`
+}

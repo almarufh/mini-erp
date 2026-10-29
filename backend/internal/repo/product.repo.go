@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/almarufh/mini-er/internal/dto"
 	"github.com/almarufh/mini-er/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -121,4 +122,44 @@ func (pr *ProductRepo) CreateProductRepo(c context.Context, db Database, product
 	}
 
 	return &createdProduct, nil
+}
+
+func (pr *ProductRepo) UpdateProductRepo(c context.Context, db Database, id int, req *dto.UpdateProductReq) (*models.Product, error) {
+	query := `
+		UPDATE products 
+		SET 
+			name = COALESCE($1, name),
+			price = COALESCE($2, price),
+			is_active = COALESCE($3, is_active)
+		WHERE id = $4
+		RETURNING id, sku, name, price, stock, is_active, created_at;
+	`
+
+	var updatedProduct models.Product
+	err := db.QueryRow(
+		c,
+		query,
+		req.Name,
+		req.Price,
+		req.IsActive,
+		id,
+	).Scan(
+		&updatedProduct.ID,
+		&updatedProduct.SKU,
+		&updatedProduct.Name,
+		&updatedProduct.Price,
+		&updatedProduct.Stock,
+		&updatedProduct.IsActive,
+		&updatedProduct.CreatedAt,
+	)
+
+	if err != nil {
+		log.Printf("[UpdateProductRepo] QueryRow Scan : %s", err.Error())
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("PRODUCT_NOT_FOUND")
+		}
+		return nil, errors.New("failed to update product")
+	}
+
+	return &updatedProduct, nil
 }
