@@ -6,3 +6,5 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements (product_id);
