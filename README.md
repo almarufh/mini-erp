@@ -9,7 +9,8 @@
   <a href="https://redis.io/"><img style="border-radius:4px" src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"></a>
 </p>
 
-A robust backend RESTful API built with Go and the Gin Framework, developed as part of the Koda Batch 9 curriculum. This project serves as a comprehensive backend service for short link management and URL redirection.
+A robust fullstack Mini ERP & Inventory Management System built with Go (Gin Framework) on the backend and React + Redux Toolkit + Tailwind CSS v4 on the frontend. This project is engineered to handle atomic stock adjustments, sales order processing, and stock movement auditing safely with database transactions.
+
 
 ## Tech Stack
 
