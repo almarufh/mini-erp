@@ -189,3 +189,29 @@ func (oc *OrderControl) GetOrderByIDControl(c *gin.Context) {
 		Results: res,
 	})
 }
+
+// Get List Sales Orders
+// @Summary      Daftar Sales Orders
+// @Description  Mengambil seluruh riwayat sales order
+// @Tags         Sales Orders
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  dto.Response
+// @Failure      500  {object}  dto.Response
+// @Router       /api/orders [get]
+func (oc *OrderControl) GetOrdersControl(c *gin.Context) {
+	res, err := oc.os.GetOrdersService(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal mengambil daftar sales order: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Message: "Berhasil mengambil daftar sales order",
+		Results: res,
+	})
+}

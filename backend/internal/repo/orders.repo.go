@@ -214,3 +214,38 @@ func (or *OrderRepo) GetOrderByIDRepo(c context.Context, db Database, id int) (*
 
 	return &order, nil
 }
+
+func (or *OrderRepo) GetOrdersRepo(c context.Context, db Database) ([]models.SalesOrder, error) {
+	query := `
+		SELECT id, customer, status, total, created_at, cancelled_at
+		FROM sales_orders
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := db.Query(c, query)
+	if err != nil {
+		log.Printf("[GetOrdersRepo] Query : %s", err.Error())
+		return nil, errors.New("failed to query sales orders")
+	}
+	defer rows.Close()
+
+	orders := make([]models.SalesOrder, 0)
+	for rows.Next() {
+		var o models.SalesOrder
+		err := rows.Scan(
+			&o.ID,
+			&o.Customer,
+			&o.Status,
+			&o.Total,
+			&o.CreatedAt,
+			&o.CancelledAt,
+		)
+		if err != nil {
+			log.Printf("[GetOrdersRepo] Scan : %s", err.Error())
+			return nil, errors.New("failed to scan sales order row")
+		}
+		orders = append(orders, o)
+	}
+
+	return orders, nil
+}
