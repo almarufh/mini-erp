@@ -16,7 +16,7 @@ import (
 // @termsOfService              http://swagger.io/terms/
 
 // @contact.name                Alma'ruf Hidayat
-// @contact.email               almarufh@gmail.com
+// @contact.email               almarufhidayat99@gmail.com
 
 // @license.name                MIT License
 // @license.url                 https://opensource.org/licenses/MIT
