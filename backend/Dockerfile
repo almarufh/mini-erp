@@ -14,6 +14,4 @@ WORKDIR /srv
 
 COPY --from=builder /app/main /srv/server/main
 
-RUN mkdir -p /srv/server/public/img/
-
 CMD [ "./server/main" ]

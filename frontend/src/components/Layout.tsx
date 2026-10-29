@@ -8,9 +8,11 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-light text-dark">
+      {/* Header / Navbar */}
       <header className="sticky top-0 z-10 bg-secondary border-b border-border shadow-xs">
         <div className="app-container">
           <div className="flex justify-between h-16 items-center">
+            {/* Brand Logo */}
             <div className="flex items-center space-x-3">
               <div className="bg-primary text-secondary px-2.5 py-1.5 rounded-lg font-bold text-sm tracking-wider">
                 SF
