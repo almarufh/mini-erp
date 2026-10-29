@@ -18,9 +18,42 @@ services:
       timeout: 5s
       retries: 5
 
+  server-backend:
+    container_name: erp-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '5000:5000'
+
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-postgres
+      - app-nginx
+
+  server-frontend:
+    container_name: erp-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      - server-backend
+    networks:
+      - app-nginx
+
 volumes:
   postgres:
 
 networks:
   app-postgres:
+    driver: bridge
+  app-nginx:
     driver: bridge
