@@ -1,0 +1,530 @@
+basePath: /
+definitions:
+  dto.AdjustStockReq:
+    properties:
+      note:
+        example: Pengurangan stok manual
+        type: string
+      qty:
+        example: 5
+        type: integer
+      type:
+        enum:
+        - in
+        - out
+        example: out
+        type: string
+    required:
+    - qty
+    - type
+    type: object
+  dto.CreateOrderItemReq:
+    properties:
+      qty:
+        example: 2
+        type: integer
+      sku:
+        example: SKU-KB-001
+        type: string
+    required:
+    - qty
+    - sku
+    type: object
+  dto.CreateOrderReq:
+    properties:
+      customer:
+        example: Budi Santoso
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.CreateOrderItemReq'
+        type: array
+    required:
+    - customer
+    - items
+    type: object
+  dto.CreateProductReq:
+    properties:
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Mechanical Keyboard Wireless Red Switch
+        type: string
+      price:
+        example: 850000
+        minimum: 0
+        type: integer
+      sku:
+        example: SKU-KB-001
+        type: string
+      stock:
+        example: 25
+        minimum: 0
+        type: integer
+    required:
+    - name
+    - sku
+    type: object
+  dto.ErrorEnvelope:
+    properties:
+      error:
+        properties:
+          available:
+            type: integer
+          code:
+            type: string
+          sku:
+            type: string
+        type: object
+    type: object
+  dto.PaginatedProductsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      limit:
+        type: integer
+      next_page:
+        type: string
+      page:
+        type: integer
+      prev_page:
+        type: string
+      total_data:
+        type: integer
+      total_page:
+        type: integer
+    type: object
+  dto.ProductMovementsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.StockMovementResponse'
+        type: array
+    type: object
+  dto.ProductResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_movement_at:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+      sku:
+        type: string
+      stock:
+        type: integer
+    type: object
+  dto.Response:
+    properties:
+      message:
+        type: string
+      results: {}
+      success:
+        type: boolean
+    type: object
+  dto.StockMovementResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      note:
+        type: string
+      product_id:
+        type: integer
+      qty:
+        type: integer
+      type:
+        type: string
+    type: object
+  dto.UpdateProductReq:
+    properties:
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Mechanical Keyboard Wireless RGB
+        type: string
+      price:
+        example: 950000
+        type: integer
+    type: object
+host: localhost:5000
+info:
+  contact:
+    email: almarufhidayat99@gmail.com
+    name: Alma'ruf Hidayat
+  description: Backend RESTful API Service untuk Manajemen Inventaris, Movement Stok,
+    dan Sales Order (StockFlow Mini ERP System).
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: StockFlow Mini ERP API
+  version: "1.0"
+paths:
+  /api/orders:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil seluruh riwayat sales order
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Daftar Sales Orders
+      tags:
+      - Sales Orders
+    post:
+      consumes:
+      - application/json
+      description: Membuat order penjualan baru, memotong stok produk secara atomik
+        & menghitung total harga
+      parameters:
+      - description: Payload Create Order
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOrderReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "409":
+          description: INSUFFICIENT_STOCK
+          schema:
+            $ref: '#/definitions/dto.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Pencatatan Sales Order Baru
+      tags:
+      - Sales Orders
+  /api/orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil detail sales order berdasarkan ID beserta daftar item,
+        total harga, dan statusnya
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Detail Sales Order
+      tags:
+      - Sales Orders
+  /api/orders/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Membatalkan sales order, mengembalikan (restore) stok produk, dan
+        mencatat stock movement tipe 'in'
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "409":
+          description: ORDER_ALREADY_CANCELLED
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Pembatalan Sales Order
+      tags:
+      - Sales Orders
+  /api/products:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil list produk dengan filter pencarian (SKU/Nama) dan pagination
+        (page & limit)
+      parameters:
+      - description: Search by SKU or Name (Case-Insensitive)
+        in: query
+        name: search
+        type: string
+      - default: 1
+        description: Page Number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Limit per Page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedProductsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Ambil daftar produk
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Membuat data produk baru dengan validasi SKU unik, Nama, dan Harga
+        >= 0
+      parameters:
+      - description: Payload Create Product
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Tambah Produk Baru
+      tags:
+      - Products
+  /api/products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Menghapus produk jika belum memiliki riwayat movement stok. Mengembalikan
+        409 jika memiliki riwayat.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (Berhasil dihapus)
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "409":
+          description: PRODUCT_HAS_HISTORY
+          schema:
+            $ref: '#/definitions/dto.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Hapus Produk
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Memperbarui nama, harga, dan status aktif produk berdasarkan ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payload Update Product
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Update Data Produk
+      tags:
+      - Products
+  /api/products/{id}/movements:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar riwayat pergerakan stok suatu produk, diurutkan
+        dari yang terbaru
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductMovementsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Riwayat Movement Stok Produk
+      tags:
+      - Stock Movements
+  /api/products/{id}/stock:
+    post:
+      consumes:
+      - application/json
+      description: Menambah atau mengurangi stok produk secara atomik dalam transaksi
+        database
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payload Adjustment Stock
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdjustStockReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "409":
+          description: INSUFFICIENT_STOCK
+          schema:
+            $ref: '#/definitions/dto.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Penyesuaian Stok Produk (In / Out)
+      tags:
+      - Stock Movements
+schemes:
+- http
+- https
+swagger: "2.0"
+tags:
+- description: Management katalog produk, harga, dan filter stok
+  name: Products
+- name: Stock Movements
+- description: Pencatatan order penjualan atomik dan pembatalan transaksi order
+  name: Sales Orders
