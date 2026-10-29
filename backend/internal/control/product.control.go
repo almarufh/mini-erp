@@ -61,3 +61,58 @@ func (pc *ProductControl) GetProductsControl(c *gin.Context) {
 		Results: *products,
 	})
 }
+
+// Create Product
+// @Summary      Tambah Produk Baru
+// @Description  Membuat data produk baru dengan validasi SKU unik, Nama, dan Harga >= 0
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Param        body  body      dto.CreateProductReq  true  "Payload Create Product"
+// @Success      201   {object}  dto.Response
+// @Failure      400   {object}  dto.Response
+// @Failure      409   {object}  dto.Response
+// @Failure      500   {object}  dto.Response
+// @Router       /api/products [post]
+func (pc *ProductControl) CreateProductControl(c *gin.Context) {
+	var req dto.CreateProductReq
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "Validasi gagal: " + err.Error(),
+		})
+		return
+	}
+
+	if req.Price < 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "Harga produk tidak boleh kurang dari 0",
+		})
+		return
+	}
+
+	res, err := pc.ps.CreateProductService(c.Request.Context(), &req)
+	if err != nil {
+		if err.Error() == "SKU_ALREADY_EXISTS" {
+			c.JSON(http.StatusConflict, dto.Response{
+				Success: false,
+				Message: "SKU produk sudah terdaftar, gunakan SKU lain",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal membuat produk: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.Response{
+		Success: true,
+		Message: "Produk berhasil dibuat",
+		Results: res,
+	})
+}

@@ -83,3 +83,42 @@ func (pr *ProductRepo) GetProductsRepo(c context.Context, db Database, search st
 
 	return &products, totalCount, nil
 }
+
+func (pr *ProductRepo) CreateProductRepo(c context.Context, db Database, product *models.Product) (*models.Product, error) {
+	query := `
+		INSERT INTO products (sku, name, price, stock, is_active)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, sku, name, price, stock, is_active, created_at;
+	`
+
+	var createdProduct models.Product
+	err := db.QueryRow(
+		c,
+		query,
+		product.SKU,
+		product.Name,
+		product.Price,
+		product.Stock,
+		product.IsActive,
+	).Scan(
+		&createdProduct.ID,
+		&createdProduct.SKU,
+		&createdProduct.Name,
+		&createdProduct.Price,
+		&createdProduct.Stock,
+		&createdProduct.IsActive,
+		&createdProduct.CreatedAt,
+	)
+
+	if err != nil {
+		log.Printf("[CreateProductRepo] QueryRow Scan : %s", err.Error())
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, errors.New("SKU_ALREADY_EXISTS")
+		}
+
+		return nil, errors.New("failed to create product")
+	}
+
+	return &createdProduct, nil
+}

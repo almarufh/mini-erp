@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/almarufh/mini-er/internal/dto"
+	"github.com/almarufh/mini-er/internal/models"
 	"github.com/almarufh/mini-er/internal/repo"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -76,5 +77,37 @@ func (ps *ProductService) GetProductsService(c context.Context, search string, p
 		TotalPage: totalPage,
 		NextPage:  nextPage,
 		PrevPage:  prevPage,
+	}, nil
+}
+
+func (ps *ProductService) CreateProductService(c context.Context, req *dto.CreateProductReq) (*dto.ProductResponse, error) {
+
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
+
+	productModel := &models.Product{
+		SKU:      req.SKU,
+		Name:     req.Name,
+		Price:    req.Price,
+		Stock:    req.Stock,
+		IsActive: isActive,
+	}
+
+	createdProduct, err := ps.pr.CreateProductRepo(c, ps.db, productModel)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ProductResponse{
+		ID:             createdProduct.ID,
+		SKU:            createdProduct.SKU,
+		Name:           createdProduct.Name,
+		Price:          createdProduct.Price,
+		Stock:          createdProduct.Stock,
+		IsActive:       createdProduct.IsActive,
+		CreatedAt:      createdProduct.CreatedAt,
+		LastMovementAt: nil,
 	}, nil
 }
