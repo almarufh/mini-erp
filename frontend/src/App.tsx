@@ -1,20 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import Layout from './components/Layout';
-
-// Placeholder sementara untuk halaman
-const ProductsPage = () => (
-  <div>
-    <h1 className="text-2xl font-bold mb-4">Product Catalog</h1>
-    <p className="text-slate-600">Daftar produk akan ditampilkan di sini.</p>
-  </div>
-);
-
-const OrdersPage = () => (
-  <div>
-    <h1 className="text-2xl font-bold mb-4">Sales Orders</h1>
-    <p className="text-slate-600">Daftar order akan ditampilkan di sini.</p>
-  </div>
-);
+import OrderListPage from './pages/OrderListPage';
+import ProductListPage from './pages/ProductListPage';
 
 export default function App() {
   return (
@@ -26,15 +13,15 @@ export default function App() {
         >
           <Route
             index
-            element={<ProductsPage />}
+            element={<ProductListPage />}
           />
           <Route
             path="products"
-            element={<ProductsPage />}
+            element={<ProductListPage />}
           />
           <Route
             path="orders"
-            element={<OrdersPage />}
+            element={<OrderListPage />}
           />
         </Route>
       </Routes>
