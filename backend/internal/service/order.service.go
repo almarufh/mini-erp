@@ -195,3 +195,36 @@ func (os *OrderService) CancelOrderService(c context.Context, id int) (*dto.Sale
 		Items:       responseItems,
 	}, nil
 }
+
+func (os *OrderService) GetOrderByIDService(c context.Context, id int) (*dto.SalesOrderResponse, error) {
+	order, err := os.or.GetOrderByIDRepo(c, os.db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := os.or.GetOrderItemsByOrderIDRepo(c, os.db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	responseItems := make([]dto.SalesOrderItemResponse, 0)
+	for _, item := range items {
+		responseItems = append(responseItems, dto.SalesOrderItemResponse{
+			ID:        item.ID,
+			OrderID:   item.OrderID,
+			SKU:       item.SKU,
+			Qty:       item.Qty,
+			UnitPrice: item.UnitPrice,
+		})
+	}
+
+	return &dto.SalesOrderResponse{
+		ID:          order.ID,
+		Customer:    order.Customer,
+		Status:      order.Status,
+		Total:       order.Total,
+		CreatedAt:   order.CreatedAt,
+		CancelledAt: order.CancelledAt,
+		Items:       responseItems,
+	}, nil
+}

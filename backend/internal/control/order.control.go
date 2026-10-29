@@ -142,3 +142,50 @@ func (oc *OrderControl) CancelOrderControl(c *gin.Context) {
 		Results: res,
 	})
 }
+
+// Get Sales Order By ID
+// @Summary      Detail Sales Order
+// @Description  Mengambil detail sales order berdasarkan ID beserta daftar item, total harga, dan statusnya
+// @Tags         Sales Orders
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Order ID"
+// @Success      200  {object}  dto.Response
+// @Failure      400  {object}  dto.Response
+// @Failure      404  {object}  dto.Response
+// @Failure      500  {object}  dto.Response
+// @Router       /api/orders/{id} [get]
+func (oc *OrderControl) GetOrderByIDControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID order tidak valid",
+		})
+		return
+	}
+
+	res, err := oc.os.GetOrderByIDService(c.Request.Context(), id)
+	if err != nil {
+		if err.Error() == "ORDER_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Sales order tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal mengambil detail sales order: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Message: "Berhasil mengambil detail sales order",
+		Results: res,
+	})
+}

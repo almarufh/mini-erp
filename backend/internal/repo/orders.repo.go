@@ -93,7 +93,6 @@ func (or *OrderRepo) CreateOrderItemRepo(c context.Context, db Database, item *m
 	return &created, nil
 }
 
-// Lock Row Sales Order berdasarkan ID
 func (or *OrderRepo) GetOrderForUpdateRepo(c context.Context, db Database, id int) (*models.SalesOrder, error) {
 	query := `
 		SELECT id, customer, status, total, created_at, cancelled_at
@@ -123,7 +122,6 @@ func (or *OrderRepo) GetOrderForUpdateRepo(c context.Context, db Database, id in
 	return &order, nil
 }
 
-// Ambil seluruh items dalam Sales Order
 func (or *OrderRepo) GetOrderItemsByOrderIDRepo(c context.Context, db Database, orderID int) ([]models.SalesOrderItem, error) {
 	query := `
 		SELECT id, order_id, sku, qty, unit_price
@@ -184,6 +182,34 @@ func (or *OrderRepo) CancelOrderRepo(c context.Context, db Database, id int) (*m
 	if err != nil {
 		log.Printf("[CancelOrderRepo] Scan : %s", err.Error())
 		return nil, errors.New("failed to update order status to cancelled")
+	}
+
+	return &order, nil
+}
+
+func (or *OrderRepo) GetOrderByIDRepo(c context.Context, db Database, id int) (*models.SalesOrder, error) {
+	query := `
+		SELECT id, customer, status, total, created_at, cancelled_at
+		FROM sales_orders
+		WHERE id = $1;
+	`
+
+	var order models.SalesOrder
+	err := db.QueryRow(c, query, id).Scan(
+		&order.ID,
+		&order.Customer,
+		&order.Status,
+		&order.Total,
+		&order.CreatedAt,
+		&order.CancelledAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("ORDER_NOT_FOUND")
+		}
+		log.Printf("[GetOrderByIDRepo] Scan : %s", err.Error())
+		return nil, errors.New("failed to query sales order")
 	}
 
 	return &order, nil
