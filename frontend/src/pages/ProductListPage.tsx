@@ -23,7 +23,7 @@ import type { AdjustStockReq, CreateProductReq, Product } from '../types';
 
 export default function ProductListPage() {
   const dispatch = useAppDispatch();
-  const { products, pagination, movements, isLoading, error } = useAppSelector(
+  const { products, pagination, movements, isLoading } = useAppSelector(
     (state) => state.products
   );
 
