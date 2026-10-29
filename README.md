@@ -1,4 +1,4 @@
-# [BACKEND] - ShortLink API v1.0.0
+# [BACKEND-FRONTEND] -  Mini ERP Application
 
 <p>
   <a href="https://golang.org/"><img style="border-radius:4px" src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go"></a>
