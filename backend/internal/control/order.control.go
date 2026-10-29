@@ -86,3 +86,59 @@ func (oc *OrderControl) CreateOrderControl(c *gin.Context) {
 		Results: res,
 	})
 }
+
+// Cancel Sales Order
+// @Summary      Pembatalan Sales Order
+// @Description  Membatalkan sales order, mengembalikan (restore) stok produk, dan mencatat stock movement tipe 'in'
+// @Tags         Sales Orders
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Order ID"
+// @Success      200  {object}  dto.Response
+// @Failure      400  {object}  dto.Response
+// @Failure      404  {object}  dto.Response
+// @Failure      409  {object}  dto.Response  "ORDER_ALREADY_CANCELLED"
+// @Failure      500  {object}  dto.Response
+// @Router       /api/orders/{id}/cancel [post]
+func (oc *OrderControl) CancelOrderControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID order tidak valid",
+		})
+		return
+	}
+
+	res, err := oc.os.CancelOrderService(c.Request.Context(), id)
+	if err != nil {
+		if err.Error() == "ORDER_ALREADY_CANCELLED" {
+			c.JSON(http.StatusConflict, dto.Response{
+				Success: false,
+				Message: "Order sudah pernah dibatalkan sebelumnya",
+			})
+			return
+		}
+
+		if err.Error() == "ORDER_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Sales order tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal membatalkan sales order: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Message: "Sales order berhasil dibatalkan dan stok telah dikembalikan",
+		Results: res,
+	})
+}

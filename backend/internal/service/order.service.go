@@ -119,3 +119,79 @@ func (os *OrderService) CreateOrderService(c context.Context, req *dto.CreateOrd
 		Items:       responseItems,
 	}, nil
 }
+
+func (os *OrderService) CancelOrderService(c context.Context, id int) (*dto.SalesOrderResponse, error) {
+	tx, err := os.db.Begin(c)
+	if err != nil {
+		return nil, errors.New("failed to start database transaction")
+	}
+
+	defer func() {
+		_ = tx.Rollback(c)
+	}()
+
+	order, err := os.or.GetOrderForUpdateRepo(c, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if order.Status == "CANCELLED" {
+		return nil, errors.New("ORDER_ALREADY_CANCELLED")
+	}
+
+	items, err := os.or.GetOrderItemsByOrderIDRepo(c, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	responseItems := make([]dto.SalesOrderItemResponse, 0)
+	for _, item := range items {
+		product, err := os.or.GetProductBySKUForUpdateRepo(c, tx, item.SKU)
+		if err != nil {
+			return nil, err
+		}
+
+		restoredStock := product.Stock + item.Qty
+		if err := os.pr.UpdateStockRepo(c, tx, product.ID, restoredStock); err != nil {
+			return nil, err
+		}
+
+		note := fmt.Sprintf("Restored stock from cancelled Order #%d", id)
+		movement := &models.StockMovement{
+			ProductID: product.ID,
+			Type:      "in",
+			Qty:       item.Qty,
+			Note:      &note,
+		}
+		if err := os.pr.CreateStockMovementRepo(c, tx, movement); err != nil {
+			return nil, err
+		}
+
+		responseItems = append(responseItems, dto.SalesOrderItemResponse{
+			ID:        item.ID,
+			OrderID:   item.OrderID,
+			SKU:       item.SKU,
+			Qty:       item.Qty,
+			UnitPrice: item.UnitPrice,
+		})
+	}
+
+	cancelledOrder, err := os.or.CancelOrderRepo(c, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(c); err != nil {
+		return nil, errors.New("failed to commit order cancellation transaction")
+	}
+
+	return &dto.SalesOrderResponse{
+		ID:          cancelledOrder.ID,
+		Customer:    cancelledOrder.Customer,
+		Status:      cancelledOrder.Status,
+		Total:       cancelledOrder.Total,
+		CreatedAt:   cancelledOrder.CreatedAt,
+		CancelledAt: cancelledOrder.CancelledAt,
+		Items:       responseItems,
+	}, nil
+}

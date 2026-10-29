@@ -92,3 +92,99 @@ func (or *OrderRepo) CreateOrderItemRepo(c context.Context, db Database, item *m
 
 	return &created, nil
 }
+
+// Lock Row Sales Order berdasarkan ID
+func (or *OrderRepo) GetOrderForUpdateRepo(c context.Context, db Database, id int) (*models.SalesOrder, error) {
+	query := `
+		SELECT id, customer, status, total, created_at, cancelled_at
+		FROM sales_orders
+		WHERE id = $1
+		FOR UPDATE;
+	`
+
+	var order models.SalesOrder
+	err := db.QueryRow(c, query, id).Scan(
+		&order.ID,
+		&order.Customer,
+		&order.Status,
+		&order.Total,
+		&order.CreatedAt,
+		&order.CancelledAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("ORDER_NOT_FOUND")
+		}
+		log.Printf("[GetOrderForUpdateRepo] Scan : %s", err.Error())
+		return nil, errors.New("failed to lock sales order")
+	}
+
+	return &order, nil
+}
+
+// Ambil seluruh items dalam Sales Order
+func (or *OrderRepo) GetOrderItemsByOrderIDRepo(c context.Context, db Database, orderID int) ([]models.SalesOrderItem, error) {
+	query := `
+		SELECT id, order_id, sku, qty, unit_price
+		FROM sales_order_items
+		WHERE order_id = $1;
+	`
+
+	rows, err := db.Query(c, query, orderID)
+	if err != nil {
+		log.Printf("[GetOrderItemsByOrderIDRepo] Query : %s", err.Error())
+		return nil, errors.New("failed to query order items")
+	}
+	defer rows.Close()
+
+	items := make([]models.SalesOrderItem, 0)
+	for rows.Next() {
+		var item models.SalesOrderItem
+		err := rows.Scan(
+			&item.ID,
+			&item.OrderID,
+			&item.SKU,
+			&item.Qty,
+			&item.UnitPrice,
+		)
+		if err != nil {
+			log.Printf("[GetOrderItemsByOrderIDRepo] Scan : %s", err.Error())
+			return nil, errors.New("failed to scan order item row")
+		}
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("[GetOrderItemsByOrderIDRepo] rows.Err : %s", err.Error())
+		return nil, errors.New("error reading order item rows")
+	}
+
+	return items, nil
+}
+
+func (or *OrderRepo) CancelOrderRepo(c context.Context, db Database, id int) (*models.SalesOrder, error) {
+	query := `
+		UPDATE sales_orders
+		SET status = 'CANCELLED', cancelled_at = NOW()
+		WHERE id = $1
+		RETURNING id, customer, status, total, created_at, cancelled_at;
+	`
+
+	var order models.SalesOrder
+	err := db.QueryRow(c, query, id).Scan(
+		&order.ID,
+		&order.Customer,
+		&order.Status,
+		&order.Total,
+		&order.CreatedAt,
+		&order.CancelledAt,
+	)
+
+	if err != nil {
+		log.Printf("[CancelOrderRepo] Scan : %s", err.Error())
+		return nil, errors.New("failed to update order status to cancelled")
+	}
+
+	return &order, nil
+}
