@@ -163,3 +163,30 @@ func (pr *ProductRepo) UpdateProductRepo(c context.Context, db Database, id int,
 
 	return &updatedProduct, nil
 }
+
+func (pr *ProductRepo) DeleteProductRepo(c context.Context, db Database, id int) error {
+	checkQuery := `SELECT EXISTS (SELECT 1 FROM stock_movements WHERE product_id = $1);`
+	var hasHistory bool
+	err := db.QueryRow(c, checkQuery, id).Scan(&hasHistory)
+	if err != nil {
+		log.Printf("[DeleteProductRepo] QueryRow check history : %s", err.Error())
+		return errors.New("failed to check product history")
+	}
+
+	if hasHistory {
+		return errors.New("PRODUCT_HAS_HISTORY")
+	}
+
+	deleteQuery := `DELETE FROM products WHERE id = $1;`
+	tag, err := db.Exec(c, deleteQuery, id)
+	if err != nil {
+		log.Printf("[DeleteProductRepo] Exec delete : %s", err.Error())
+		return errors.New("failed to delete product")
+	}
+
+	if tag.RowsAffected() == 0 {
+		return errors.New("PRODUCT_NOT_FOUND")
+	}
+
+	return nil
+}

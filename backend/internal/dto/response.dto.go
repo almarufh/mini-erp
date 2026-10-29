@@ -28,3 +28,11 @@ type ProductResponse struct {
 	CreatedAt      time.Time  `json:"created_at"`
 	LastMovementAt *time.Time `json:"last_movement_at"`
 }
+
+type ErrorEnvelope struct {
+	Error struct {
+		Code      string `json:"code"`
+		SKU       string `json:"sku,omitempty"`
+		Available *int   `json:"available,omitempty"`
+	} `json:"error"`
+}

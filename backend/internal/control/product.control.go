@@ -150,7 +150,6 @@ func (pc *ProductControl) UpdateProductControl(c *gin.Context) {
 		return
 	}
 
-	// Validasi harga hanya dilakukan jika field price dikirim
 	if req.Price != nil && *req.Price < 0 {
 		c.JSON(http.StatusBadRequest, dto.Response{
 			Success: false,
@@ -181,4 +180,57 @@ func (pc *ProductControl) UpdateProductControl(c *gin.Context) {
 		Message: "Produk berhasil diperbarui",
 		Results: res,
 	})
+}
+
+// Delete Product
+// @Summary      Hapus Produk
+// @Description  Menghapus produk jika belum memiliki riwayat movement stok. Mengembalikan 409 jika memiliki riwayat.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Product ID"
+// @Success      204  "No Content (Berhasil dihapus)"
+// @Failure      400  {object}  dto.Response
+// @Failure      404  {object}  dto.Response
+// @Failure      409  {object}  dto.ErrorEnvelope  "PRODUCT_HAS_HISTORY"
+// @Failure      500  {object}  dto.Response
+// @Router       /api/products/{id} [delete]
+func (pc *ProductControl) DeleteProductControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID produk tidak valid",
+		})
+		return
+	}
+
+	err = pc.ps.DeleteProductService(c.Request.Context(), id)
+	if err != nil {
+		if err.Error() == "PRODUCT_HAS_HISTORY" {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": gin.H{
+					"code": "PRODUCT_HAS_HISTORY",
+				},
+			})
+			return
+		}
+
+		if err.Error() == "PRODUCT_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Produk tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal menghapus produk: " + err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

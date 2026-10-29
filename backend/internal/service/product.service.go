@@ -129,3 +129,7 @@ func (ps *ProductService) UpdateProductService(c context.Context, id int, req *d
 		LastMovementAt: nil,
 	}, nil
 }
+
+func (ps *ProductService) DeleteProductService(c context.Context, id int) error {
+	return ps.pr.DeleteProductRepo(c, ps.db, id)
+}
