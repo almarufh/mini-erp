@@ -18,6 +18,8 @@ type Router struct {
 }
 
 func NewRouter(router *gin.Engine, pool *pgxpool.Pool, allowedOrigins []string) *Router {
+	m := middleware.InitMiddleware(allowedOrigins)
+	router.Use(m.Cors)
 	api := router.Group("api")
 
 	pr := repo.NewProductRepo()
@@ -29,7 +31,7 @@ func NewRouter(router *gin.Engine, pool *pgxpool.Pool, allowedOrigins []string) 
 	oc := control.NewOrderControl(os)
 	return &Router{
 		pool: pool,
-		m:    middleware.InitMiddleware(allowedOrigins),
+		m:    m,
 		api:  api,
 		pc:   pc,
 		oc:   oc,
