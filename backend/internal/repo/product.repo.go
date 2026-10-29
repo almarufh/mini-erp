@@ -190,3 +190,57 @@ func (pr *ProductRepo) DeleteProductRepo(c context.Context, db Database, id int)
 
 	return nil
 }
+
+func (pr *ProductRepo) GetProductForUpdateRepo(c context.Context, db Database, id int) (*models.Product, error) {
+	query := `
+		SELECT id, sku, name, price, stock, is_active, created_at 
+		FROM products 
+		WHERE id = $1 
+		FOR UPDATE;
+	`
+
+	var product models.Product
+	err := db.QueryRow(c, query, id).Scan(
+		&product.ID,
+		&product.SKU,
+		&product.Name,
+		&product.Price,
+		&product.Stock,
+		&product.IsActive,
+		&product.CreatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("PRODUCT_NOT_FOUND")
+		}
+		log.Printf("[GetProductForUpdateRepo] Scan : %s", err.Error())
+		return nil, errors.New("failed to lock product row")
+	}
+
+	return &product, nil
+}
+
+func (pr *ProductRepo) UpdateStockRepo(c context.Context, db Database, id int, newStock int) error {
+	query := `UPDATE products SET stock = $1 WHERE id = $2;`
+	_, err := db.Exec(c, query, newStock, id)
+	if err != nil {
+		log.Printf("[UpdateStockRepo] Exec : %s", err.Error())
+		return errors.New("failed to update product stock")
+	}
+	return nil
+}
+
+func (pr *ProductRepo) CreateStockMovementRepo(c context.Context, db Database, movement *models.StockMovement) error {
+	query := `
+		INSERT INTO stock_movements (product_id, type, qty, note)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at;
+	`
+	err := db.QueryRow(c, query, movement.ProductID, movement.Type, movement.Qty, movement.Note).Scan(&movement.ID, &movement.CreatedAt)
+	if err != nil {
+		log.Printf("[CreateStockMovementRepo] Scan : %s", err.Error())
+		return errors.New("failed to record stock movement")
+	}
+	return nil
+}

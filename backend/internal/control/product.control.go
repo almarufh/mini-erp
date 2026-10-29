@@ -234,3 +234,70 @@ func (pc *ProductControl) DeleteProductControl(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+// Adjust Stock
+// @Summary      Penyesuaian Stok Produk (In / Out)
+// @Description  Menambah atau mengurangi stok produk secara atomik dalam transaksi database
+// @Tags         Stock Movements
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int                 true  "Product ID"
+// @Param        body  body      dto.AdjustStockReq  true  "Payload Adjustment Stock"
+// @Success      200   {object}  dto.Response
+// @Failure      400   {object}  dto.Response
+// @Failure      404   {object}  dto.Response
+// @Failure      409   {object}  dto.ErrorEnvelope  "INSUFFICIENT_STOCK"
+// @Failure      500   {object}  dto.Response
+// @Router       /api/products/{id}/stock [post]
+func (pc *ProductControl) AdjustStockControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID produk tidak valid",
+		})
+		return
+	}
+
+	var req dto.AdjustStockReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "Validasi payload gagal: " + err.Error(),
+		})
+		return
+	}
+
+	availableStock, err := pc.ps.AdjustStockService(c.Request.Context(), id, &req)
+	if err != nil {
+		if err.Error() == "INSUFFICIENT_STOCK" {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": gin.H{
+					"code":      "INSUFFICIENT_STOCK",
+					"available": availableStock,
+				},
+			})
+			return
+		}
+
+		if err.Error() == "PRODUCT_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Produk tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal menyesuaikan stok: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Message: "Penyesuaian stok berhasil disimpan",
+	})
+}

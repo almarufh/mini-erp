@@ -7,6 +7,6 @@ func (r *Router) ProductsRouter() {
 	router.POST("", r.pc.CreateProductControl)
 	router.PUT("/:id", r.pc.UpdateProductControl)
 	router.DELETE("/:id", r.pc.DeleteProductControl)
-	router.POST("/:id/stock")
+	router.POST("/:id/stock", r.pc.AdjustStockControl)
 	router.POST("/:id/movements")
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -132,4 +133,52 @@ func (ps *ProductService) UpdateProductService(c context.Context, id int, req *d
 
 func (ps *ProductService) DeleteProductService(c context.Context, id int) error {
 	return ps.pr.DeleteProductRepo(c, ps.db, id)
+}
+
+func (ps *ProductService) AdjustStockService(c context.Context, id int, req *dto.AdjustStockReq) (int, error) {
+	tx, err := ps.db.Begin(c)
+	if err != nil {
+		return 0, errors.New("failed to start database transaction")
+	}
+
+	defer func() {
+		_ = tx.Rollback(c)
+	}()
+
+	product, err := ps.pr.GetProductForUpdateRepo(c, tx, id)
+	if err != nil {
+		return 0, err
+	}
+
+	newStock := product.Stock
+
+	switch req.Type {
+	case "in":
+		newStock += req.Qty
+	case "out":
+		if product.Stock < req.Qty {
+			return product.Stock, errors.New("INSUFFICIENT_STOCK")
+		}
+		newStock -= req.Qty
+	}
+
+	if err := ps.pr.UpdateStockRepo(c, tx, id, newStock); err != nil {
+		return 0, err
+	}
+
+	movement := &models.StockMovement{
+		ProductID: id,
+		Type:      req.Type,
+		Qty:       req.Qty,
+		Note:      req.Note,
+	}
+	if err := ps.pr.CreateStockMovementRepo(c, tx, movement); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(c); err != nil {
+		return 0, errors.New("failed to commit stock transaction")
+	}
+
+	return newStock, nil
 }

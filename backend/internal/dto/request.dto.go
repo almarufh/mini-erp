@@ -13,3 +13,9 @@ type UpdateProductReq struct {
 	Price    *int    `json:"price,omitempty" example:"950000"`
 	IsActive *bool   `json:"is_active,omitempty" example:"true"`
 }
+
+type AdjustStockReq struct {
+	Type string  `json:"type" binding:"required,oneof=in out" example:"out"`
+	Qty  int     `json:"qty" binding:"required,gt=0" example:"5"`
+	Note *string `json:"note,omitempty" example:"Pengurangan stok manual"`
+}
