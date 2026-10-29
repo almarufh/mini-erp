@@ -182,3 +182,28 @@ func (ps *ProductService) AdjustStockService(c context.Context, id int, req *dto
 
 	return newStock, nil
 }
+
+func (ps *ProductService) GetProductMovementsService(c context.Context, productID int) (*dto.ProductMovementsResponse, error) {
+	movements, err := ps.pr.GetProductMovementsRepo(c, ps.db, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	movementList := make([]dto.StockMovementResponse, 0)
+	if movements != nil {
+		for _, m := range *movements {
+			movementList = append(movementList, dto.StockMovementResponse{
+				ID:        m.ID,
+				ProductID: m.ProductID,
+				Type:      m.Type,
+				Qty:       m.Qty,
+				Note:      m.Note,
+				CreatedAt: m.CreatedAt,
+			})
+		}
+	}
+
+	return &dto.ProductMovementsResponse{
+		Data: movementList,
+	}, nil
+}

@@ -301,3 +301,46 @@ func (pc *ProductControl) AdjustStockControl(c *gin.Context) {
 		Message: "Penyesuaian stok berhasil disimpan",
 	})
 }
+
+// Get Product Movements
+// @Summary      Riwayat Movement Stok Produk
+// @Description  Mengambil daftar riwayat pergerakan stok suatu produk, diurutkan dari yang terbaru
+// @Tags         Stock Movements
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Product ID"
+// @Success      200  {object}  dto.ProductMovementsResponse
+// @Failure      400  {object}  dto.Response
+// @Failure      404  {object}  dto.Response
+// @Failure      500  {object}  dto.Response
+// @Router       /api/products/{id}/movements [get]
+func (pc *ProductControl) GetProductMovementsControl(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Success: false,
+			Message: "ID produk tidak valid",
+		})
+		return
+	}
+
+	res, err := pc.ps.GetProductMovementsService(c.Request.Context(), id)
+	if err != nil {
+		if err.Error() == "PRODUCT_NOT_FOUND" {
+			c.JSON(http.StatusNotFound, dto.Response{
+				Success: false,
+				Message: "Produk tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Success: false,
+			Message: "Gagal mengambil riwayat movement stok: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}

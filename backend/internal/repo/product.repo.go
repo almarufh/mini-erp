@@ -244,3 +244,57 @@ func (pr *ProductRepo) CreateStockMovementRepo(c context.Context, db Database, m
 	}
 	return nil
 }
+
+func (pr *ProductRepo) GetProductMovementsRepo(c context.Context, db Database, productID int) (*[]models.StockMovement, error) {
+	var exists bool
+	checkQuery := `SELECT EXISTS(SELECT 1 FROM products WHERE id = $1);`
+	err := db.QueryRow(c, checkQuery, productID).Scan(&exists)
+	if err != nil {
+		log.Printf("[GetProductMovementsRepo] Check Product EXISTS : %s", err.Error())
+		return nil, errors.New("failed to check product existence")
+	}
+
+	if !exists {
+		return nil, errors.New("PRODUCT_NOT_FOUND")
+	}
+
+	query := `
+		SELECT 
+			id, product_id, type, qty, note, created_at
+		FROM stock_movements
+		WHERE product_id = $1
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := db.Query(c, query, productID)
+	if err != nil {
+		log.Printf("[GetProductMovementsRepo] Query : %s", err.Error())
+		return nil, errors.New("failed to query stock movements")
+	}
+	defer rows.Close()
+
+	movements := make([]models.StockMovement, 0)
+	for rows.Next() {
+		var sm models.StockMovement
+		err := rows.Scan(
+			&sm.ID,
+			&sm.ProductID,
+			&sm.Type,
+			&sm.Qty,
+			&sm.Note,
+			&sm.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("[GetProductMovementsRepo] rows.Next : %s", err.Error())
+			return nil, errors.New("failed to scan stock movement row")
+		}
+		movements = append(movements, sm)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("[GetProductMovementsRepo] rows.Err : %s", err.Error())
+		return nil, errors.New("error reading stock movement rows")
+	}
+
+	return &movements, nil
+}

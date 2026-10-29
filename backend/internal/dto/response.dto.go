@@ -36,3 +36,16 @@ type ErrorEnvelope struct {
 		Available *int   `json:"available,omitempty"`
 	} `json:"error"`
 }
+
+type StockMovementResponse struct {
+	ID        int       `json:"id"`
+	ProductID int       `json:"product_id"`
+	Type      string    `json:"type"`
+	Qty       int       `json:"qty"`
+	Note      *string   `json:"note"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ProductMovementsResponse struct {
+	Data []StockMovementResponse `json:"data"`
+}
